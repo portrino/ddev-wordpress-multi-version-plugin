@@ -161,11 +161,25 @@ teardown() {
 }
 
 # bats test_tags=install
-@test "single site: admin login works under /wp-admin/" {
+@test "single site: project.sh, child theme, hooks and admin login" {
   set -eu -o pipefail
+  child=Tests/Acceptance/Fixtures/packages/child-theme
+  mkdir -p "$child" .ddev/.setup/hooks
+  printf '{"name": "test/child-theme", "type": "wordpress-theme", "require": {"wpackagist-theme/twentytwentyfour": "*"}}\n' > "$child/composer.json"
+  printf '/*\nTheme Name: Child Theme\nTemplate: twentytwentyfour\n*/\n' > "$child/style.css"
+  printf "THEME_PACKAGES=('test/child-theme:*@dev')\nTHEME='child-theme'\nADDITIONAL_PACKAGES=('wpackagist-plugin/hello-dolly')\n" > .ddev/.setup/project.sh
+  printf 'wp option update blogdescription "hooked $label" --quiet\n' > .ddev/.setup/hooks/post-install.sh
   start_project nginx-fpm
   run ddev install 7.1
   assert_success
+  run ddev 71 wp theme list --status=active --field=name
+  assert_output "child-theme"
+  run ddev 71 wp theme is-installed twentytwentyfour
+  assert_success
+  run ddev 71 wp plugin is-active hello-dolly
+  assert_success
+  run ddev 71 wp option get blogdescription
+  assert_output "hooked 71"
   base="https://71.${PROJNAME}.ddev.site"
   jar="${TESTDIR}/cookies"
   curl -sk -o /dev/null -c "$jar" -b "$jar" "$base/wp-login.php"

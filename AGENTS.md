@@ -20,6 +20,9 @@ conventions aligned with it where WordPress allows.
 - `docker-compose.wordpress-setup.yaml`: defaults (`WP_VERSIONS`,
   `SYMLINK_EXCLUSIONS`, database and admin credentials); projects override them in their own
   `docker-compose.zz-project.yaml`.
+- `.setup/project.sh.example`: template for the project-owned `.ddev/.setup/project.sh`
+  (`THEME_PACKAGES`, `THEME`, `ADDITIONAL_PACKAGES`, `COMPOSER_CONFIG`,
+  `FIXTURE_PACKAGE_DIRS`); defaults and `run_hook` are in `utils.sh`.
 - `commands/web/install`, `commands/web/all`, `.setup/scripts/`
   (`utils.sh` helpers, `run` used by `ddev <label>` and `ddev all`).
 - `apache/wordpress-versions.conf` + `.rules` (DDEV copies every file into

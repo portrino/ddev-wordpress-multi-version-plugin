@@ -40,7 +40,7 @@ The add-on sets the project type to `wordpress` (for DDEV's WP-CLI) with
 
 | Command | Description |
 |---|---|
-| `ddev install [<version>\|all] [--multisite] [-v]` | (Re)installs instances: deletes the directory and the database, builds a Composer project with `roots/wordpress`, the plugin and Twenty Twenty-Four, installs WordPress (multisite: subdirectories) and activates the plugin. `-v` shows all output |
+| `ddev install [<version>\|all] [--multisite] [-v]` | (Re)installs instances: deletes the directory and the database, builds a Composer project with `roots/wordpress`, the plugin, the theme and the extra packages from `project.sh`, installs WordPress (multisite: subdirectories), activates the theme and all plugins. `-v` shows all output |
 | `ddev <label> <command>` | Runs a command in one instance, e.g. `ddev 71 wp plugin list` |
 | `ddev all <command>` | Runs a command in every instance, e.g. `ddev all wp cache flush` |
 
@@ -88,6 +88,72 @@ services:
   instances, default `vendor node_modules`.
 - `WP_DB_USERNAME`, `WP_DB_PASSWORD`, `WP_DB_HOST`, `WP_SETUP_ADMIN_USERNAME`,
   `WP_SETUP_ADMIN_PASSWORD`, `WP_SETUP_ADMIN_EMAIL`: database and admin login.
+
+### `project.sh`: theme, extra plugins, Composer settings
+
+Copy `.ddev/.setup/project.sh.example` to `.ddev/.setup/project.sh`. It belongs to
+the project and survives `ddev add-on get`.
+
+| Variable | Default | Effect |
+|---|---|---|
+| `THEME_PACKAGES` | `wpackagist-theme/twentytwentyfour` | Theme packages, replace the default |
+| `THEME` | `twentytwentyfour` | Theme that gets activated |
+| `ADDITIONAL_PACKAGES` | – | Extra packages (e.g. from wpackagist or a private repository), activated together with the plugin |
+| `COMPOSER_CONFIG` | – | Extra `composer config` calls, e.g. a private repository |
+| `FIXTURE_PACKAGE_DIRS` | `Tests/Acceptance/Fixtures/packages` | Subdirectories with a `composer.json` become available through the path repository |
+
+A child theme lives in the plugin repository, e.g.
+`Tests/Acceptance/Fixtures/packages/my-child-theme/` with `style.css`
+(`Template: <parent>`) and a `composer.json`:
+
+```json
+{
+    "name": "test/my-child-theme",
+    "type": "wordpress-theme",
+    "require": {"wpackagist-theme/twentytwentyfive": "*"}
+}
+```
+
+```bash
+# .ddev/.setup/project.sh
+THEME_PACKAGES=('test/my-child-theme:*@dev')
+THEME='my-child-theme'
+```
+
+### Hooks
+
+For steps that don't fit a variable, add `.ddev/.setup/hooks/<name>.sh`. Hooks are
+sourced, see `$version`, `$label`, `$path`, `$url`, `$database`, `$multisite` and
+`$slug`, and from `post-composer` on run inside the instance, where a plain `wp`
+works. A failing command aborts the install with its output.
+
+| Hook | Runs |
+|---|---|
+| `pre-install` | Before the instance is deleted and rebuilt |
+| `post-composer` | After `composer require`, before WordPress is installed |
+| `post-wp-setup` | After WordPress is installed and the theme and plugins are activated |
+| `post-install` | Last |
+
+```bash
+# .ddev/.setup/hooks/post-wp-setup.sh
+wp plugin deactivate classic-editor --quiet
+if [ "$multisite" = "1" ]; then
+    wp site create --slug=second --quiet
+fi
+```
+
+### Private Composer repositories
+
+Premium plugins often come from a private Composer repository, e.g.
+[Private Packagist](https://packagist.com) or a [SatisPress](https://github.com/cedaro/satispress)
+instance. Add the repository with `COMPOSER_CONFIG` and the packages with
+`ADDITIONAL_PACKAGES`. Credentials never go into the project. Put a global `auth.json` into DDEV's
+homeadditions, it is copied into every web container:
+
+```bash
+mkdir -p ~/.ddev/homeadditions/.composer
+ln -s ~/.composer/auth.json ~/.ddev/homeadditions/.composer/auth.json
+```
 
 ## Notes
 

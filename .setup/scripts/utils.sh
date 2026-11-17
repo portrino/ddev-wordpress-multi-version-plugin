@@ -169,3 +169,24 @@ message() {
     esac
     printf "\e[%sm%s\e[0m\n" "$color" "$2"
 }
+
+# Sources .ddev/.setup/hooks/<name>.sh if the project has one. Sourced, so a hook sees
+# $version, $label, $path, $url, $database, $multisite and $slug; from post-composer on
+# it runs in the instance, where a plain `wp` works. A failing command aborts the install.
+run_hook() {
+    local hook_file="/var/www/html/.ddev/.setup/hooks/$1.sh"
+    [ -f "$hook_file" ] || return 0
+    _progress " ├─ Hook: $1"
+        . "$hook_file"
+    _done
+}
+
+# Defaults for `ddev install`; the project's .ddev/.setup/project.sh overrides them
+THEME_PACKAGES=('wpackagist-theme/twentytwentyfour')
+THEME='twentytwentyfour'
+ADDITIONAL_PACKAGES=()
+COMPOSER_CONFIG=()
+FIXTURE_PACKAGE_DIRS=('Tests/Acceptance/Fixtures/packages')
+if [ -f /var/www/html/.ddev/.setup/project.sh ]; then
+    . /var/www/html/.ddev/.setup/project.sh
+fi

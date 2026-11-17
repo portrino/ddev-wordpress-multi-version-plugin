@@ -1,0 +1,37 @@
+#ddev-generated
+# .ddev/.setup/project.sh: repo-owned settings for `ddev install`.
+#
+# Copy this file to .ddev/.setup/project.sh and adjust it. It isn't managed by the
+# add-on, so it survives `ddev add-on get` updates. Delete what you don't need;
+# every variable has a default.
+
+# Theme packages, replacing the default twentytwentyfour. A child theme from this
+# repository goes into Tests/Acceptance/Fixtures/packages/<name>/ with its own
+# composer.json ("type": "wordpress-theme", requiring the parent theme) and is
+# required by its package name here.
+THEME_PACKAGES=(
+    'wpackagist-theme/twentytwentyfive:*'
+    'test/my-child-theme:*@dev'
+)
+
+# Theme to activate (the child theme's directory name, if you use one).
+THEME='my-child-theme'
+
+# Extra Composer packages. They're all activated, together with the plugin;
+# deactivate exceptions in a hook (.ddev/.setup/hooks/post-wp-setup.sh).
+ADDITIONAL_PACKAGES=(
+    'wpackagist-plugin/classic-editor:*'
+    'acme/premium-plugin:^2.0'
+)
+
+# Extra `composer config` calls, "<key> <value...>" each. Credentials don't belong
+# here, see the README (Composer authentication).
+COMPOSER_CONFIG=(
+    'repositories.acme composer https://composer.example.com/'
+)
+
+# Directories (relative to the project root) whose subdirectories with a
+# composer.json are offered to the instances through the path repository.
+FIXTURE_PACKAGE_DIRS=(
+    'Tests/Acceptance/Fixtures/packages'
+)
