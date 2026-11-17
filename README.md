@@ -42,9 +42,12 @@ The add-on sets the project type to `wordpress` (for DDEV's WP-CLI) with
 |---|---|
 | `ddev install [<version>\|all] [--multisite] [-v]` | (Re)installs instances: deletes the directory and the database, builds a Composer project with `roots/wordpress`, the plugin, the theme and the extra packages from `project.sh`, installs WordPress (multisite: subdirectories), activates the theme and all plugins. `-v` shows all output |
 | `ddev <label> <command>` | Runs a command in one instance, e.g. `ddev 71 wp plugin list` |
+| `ddev open [<version>] [<path>]` | Opens the intro page, or an instance, e.g. `ddev open 71 /wp-admin/` (uses `ddev launch`) |
 | `ddev all <command>` | Runs a command in every instance, e.g. `ddev all wp cache flush` |
 
-`<version>` is `7.1` or the label `71`. Login: `/wp-admin/` with `admin` / `Password1!`.
+`<version>` is `7.1` or the label `71`. The primary URL `https://<project>.ddev.site`
+shows an intro page with every version, its installed release, links, the
+admin login and the current branch and commit. Login: `/wp-admin/` with `admin` / `Password1!`.
 
 ## Instance layout
 
@@ -172,8 +175,8 @@ ln -s ~/.composer/auth.json ~/.ddev/homeadditions/.composer/auth.json
 
 ## Notes
 
-- The primary URL `https://<project>.ddev.site` has no site of its own (403),
-  and DDEV's own `ddev wp` points there too. Use `ddev <label> wp …` or `ddev all wp …`.
+- DDEV's own `ddev wp` points to `.Build`, where no WordPress lives. Use
+  `ddev <label> wp …` or `ddev all wp …`.
 - The project root is mounted a second time at `/var/www/plugin`, and
   `packages/<slug>` links there. WordPress maps a symlinked plugin to its real
   directory; with `/var/www/html`, which also contains `.Build`, every other

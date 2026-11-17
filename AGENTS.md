@@ -23,6 +23,8 @@ conventions aligned with it where WordPress allows.
 - `.setup/project.sh.example`: template for the project-owned `.ddev/.setup/project.sh`
   (`THEME_PACKAGES`, `THEME`, `ADDITIONAL_PACKAGES`, `COMPOSER_CONFIG`,
   `FIXTURES_DIR`, `FIXTURE_PACKAGE_DIRS`); defaults and `run_hook` are in `utils.sh`.
+- `.setup/templates/index.php`: intro page, copied to `.Build/` by the generated
+  post-start hook together with `write-git-info.sh`; `commands/host/open`.
 - `commands/web/install`, `commands/web/all`, `.setup/scripts/`
   (`utils.sh` helpers, `run` used by `ddev <label>` and `ddev all`).
 - `apache/wordpress-versions.conf` + `.rules` (DDEV copies every file into

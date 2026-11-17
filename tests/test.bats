@@ -77,7 +77,16 @@ routing_checks() {
   assert_output --regexp '^301 (https://71\.'"${PROJNAME}"'\.ddev\.site)?/second-dir/$'
 }
 
+# The primary URL shows the intro page with every version from WP_VERSIONS
+intro_page_checks() {
+  run curl -sfk "https://${PROJNAME}.ddev.site/"
+  assert_success
+  assert_output --partial "ddev install all"
+  assert_output --partial "ddev install 64"
+}
+
 generated_files_checks() {
+  assert_file_exist .ddev/commands/host/open
   assert_file_exist .ddev/config.wordpress-setup.yaml
   run grep -F "71.${PROJNAME}" .ddev/config.wordpress-setup.yaml
   assert_success
@@ -102,6 +111,7 @@ teardown() {
   start_project apache-fpm
   generated_files_checks
   routing_checks
+  intro_page_checks
 }
 
 @test "install from directory (nginx-fpm)" {
@@ -109,6 +119,7 @@ teardown() {
   start_project nginx-fpm
   generated_files_checks
   routing_checks
+  intro_page_checks
 }
 
 @test "WP_VERSIONS override regenerates hostnames and commands" {
@@ -201,6 +212,8 @@ XML
   assert_success
   run ddev 71 wp option get blogdescription
   assert_output "hooked 71"
+  run curl -sfk "https://${PROJNAME}.ddev.site/"
+  assert_output --regexp '<small>7\.1\.[0-9]+</small>'
   run ddev 71 wp option get fixture_sql
   assert_output "yes"
   run ddev 71 wp option get fixture_sh

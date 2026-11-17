@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+## #ddev-generated
+## Description: Open the intro page or a WordPress instance in the browser (via DDEV's own `ddev launch`).
+## Usage: open [version] [path]
+## Example: "ddev open" or "ddev open 71" or "ddev open 7.1 /wp-admin/"
+
+# Not called launch: DDEV removes a project command that shadows its global `ddev launch`
+if [ -z "${1:-}" ]; then
+    exec ddev launch
+fi
+
+label="${1//./}"
+if ! [[ "$label" =~ ^[0-9]+$ ]]; then
+    echo "Unknown WordPress version '$1', use e.g. 71 or 7.1." >&2
+    exit 1
+fi
+exec ddev launch "https://${label}.${DDEV_SITENAME}.${DDEV_TLD}/${2#/}"
