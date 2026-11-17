@@ -58,5 +58,9 @@ ddev add-on get /path/to/this/checkout && ddev restart && ddev install all
 Check both webserver types. Tests: `bats ./tests/test.bats` (tags `install`,
 `release`), CI via `ddev/github-action-add-on-test`.
 
+User docs: `README.md` is the overview and links to `docs/` (installation,
+commands, configuration, git-worktrees), which hold the details. Keep a fact in
+one place.
+
 Everything with `#ddev-generated` ships to every project on its next
 `ddev add-on get`.
