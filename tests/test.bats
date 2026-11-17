@@ -50,11 +50,19 @@ start_project() {
   assert_success
 }
 
-# <label>.<project> serves .Build/<label>, existing files directly, the rest via index.php
+# <label>.<project> serves .Build/<label>/public, existing files directly, core paths
+# from public/wp-source, the rest via index.php
 routing_checks() {
-  mkdir -p "${TESTDIR}/.Build/71/second-dir"
-  echo "WP71" > "${TESTDIR}/.Build/71/marker.txt"
-  echo '<?php echo "INDEX71";' > "${TESTDIR}/.Build/71/index.php"
+  mkdir -p "${TESTDIR}/.Build/71/public/second-dir" "${TESTDIR}/.Build/71/public/wp-source/wp-admin"
+  echo "WP71" > "${TESTDIR}/.Build/71/public/marker.txt"
+  echo '<?php echo "INDEX71";' > "${TESTDIR}/.Build/71/public/index.php"
+  echo '<?php echo "LOGIN71";' > "${TESTDIR}/.Build/71/public/wp-source/wp-login.php"
+  echo '<?php echo "ADMIN71";' > "${TESTDIR}/.Build/71/public/wp-source/wp-admin/index.php"
+
+  run curl -sfk "https://71.${PROJNAME}.ddev.site/wp-login.php"
+  assert_output "LOGIN71"
+  run curl -sfk "https://71.${PROJNAME}.ddev.site/subsite/wp-admin/"
+  assert_output "ADMIN71"
 
   run curl -sfk "https://71.${PROJNAME}.ddev.site/marker.txt"
   assert_success
@@ -131,11 +139,41 @@ teardown() {
   run ddev install 6.4 --multisite
   assert_success
   run ddev 64 wp core version
-  assert_output "6.4"
+  assert_output --regexp '^6\.4\.[0-9]+$'
   run ddev 64 wp plugin is-active test-plugin --network
   assert_success
+  # The plugin comes from the path repository, its symlinks point back to the project root
+  assert_link_exists .Build/64/packages/test-plugin/test-plugin.php
   run curl -sfk "https://64.${PROJNAME}.ddev.site/wp-login.php"
   assert_success
+  run curl -sfk -o /dev/null -w '%{http_code}' "https://64.${PROJNAME}.ddev.site/"
+  assert_output "200"
+  # A second plugin keeps its own basename, the symlinked plugin doesn't swallow it
+  run ddev 64 wp plugin install hello-dolly --activate-network --quiet
+  assert_success
+  printf '<?php echo plugin_basename(WP_PLUGIN_DIR . "/hello-dolly/hello.php");' > check.php
+  run ddev exec "cd .Build/64 && wp eval-file /var/www/html/check.php 2>/dev/null"
+  assert_output "hello-dolly/hello.php"
+  run ddev 64 wp site create --slug=second --quiet
+  assert_success
+  run curl -sfk "https://64.${PROJNAME}.ddev.site/second/wp-login.php"
+  assert_success
+}
+
+# bats test_tags=install
+@test "single site: admin login works under /wp-admin/" {
+  set -eu -o pipefail
+  start_project nginx-fpm
+  run ddev install 7.1
+  assert_success
+  base="https://71.${PROJNAME}.ddev.site"
+  jar="${TESTDIR}/cookies"
+  curl -sk -o /dev/null -c "$jar" -b "$jar" "$base/wp-login.php"
+  run curl -sk -o /dev/null -w '%{http_code}' -c "$jar" -b "$jar" \
+    --data-urlencode log=admin --data-urlencode 'pwd=Password1!' --data-urlencode testcookie=1 "$base/wp-login.php"
+  assert_output "302"
+  run curl -sk -o /dev/null -w '%{http_code}' -b "$jar" "$base/wp-admin/plugins.php"
+  assert_output "200"
 }
 
 # bats test_tags=release

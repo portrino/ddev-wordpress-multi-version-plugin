@@ -147,17 +147,25 @@ wp_resolve() {
     return 1
 }
 
-# WP_PLUGIN_SLUG, else the root PHP file with a "Plugin Name:" header
+# Directory name composer/installers gives the plugin: extra.installer-name, else the package name without vendor
 wp_plugin_slug() {
-    if [ -n "${WP_PLUGIN_SLUG:-}" ]; then
-        echo "$WP_PLUGIN_SLUG"
-        return 0
-    fi
-    local file
-    file=$(grep -l -E '^[[:space:]/*#@]*Plugin Name:' /var/www/html/*.php 2>/dev/null | head -n1)
-    if [ -z "$file" ]; then
-        echo "No plugin main file (\"Plugin Name:\" header) in the project root, set WP_PLUGIN_SLUG." >&2
+    local name
+    name=$(jq -r '.extra["installer-name"] // .name // empty' /var/www/html/composer.json 2>/dev/null)
+    if [ -z "$name" ]; then
+        echo "No composer.json with a \"name\" in the project root." >&2
         return 1
     fi
-    basename "$file" .php
+    echo "${name##*/}"
+}
+
+wp_package_name() {
+    jq -r '.name' /var/www/html/composer.json
+}
+
+message() {
+    local color
+    case "$1" in
+        red) color=31 ;; green) color=32 ;; yellow) color=33 ;; blue) color=34 ;; magenta) color=35 ;; *) color=0 ;;
+    esac
+    printf "\e[%sm%s\e[0m\n" "$color" "$2"
 }

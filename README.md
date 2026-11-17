@@ -4,9 +4,9 @@
 # DDEV WordPress Multi-Version Plugin
 
 Testing a WordPress plugin against several WordPress versions in one DDEV
-project. Every version gets its own instance in `.Build/<label>`, its own
-database and its own hostname; the plugin checkout is symlinked into each
-instance and activated.
+project. Every version gets its own Composer-based instance in `.Build/<label>`,
+its own database and its own hostname; the plugin is required from the project
+root through a path repository and activated.
 
 | WordPress | Hostname | Directory | Database |
 |---|---|---|---|
@@ -18,10 +18,10 @@ Inspired by [ddev-typo3-multi-version-extension](https://github.com/konradmichal
 ## Requirements
 
 - DDEV >= v1.24.10, webserver type `apache-fpm` or `nginx-fpm`
-- The plugin in the project root, with its main file (the one with the
-  `Plugin Name:` header) there too
-- A `composer.json` in the project root with a `name` and
-  `"type": "wordpress-plugin"`
+- The plugin in the project root, with a `composer.json` that has a `name` and
+  `"type": "wordpress-plugin"`. The plugin directory in the instances is
+  `extra.installer-name` or the package name without vendor, the same name
+  `composer/installers` uses.
 
 ## Installation
 
@@ -40,15 +40,33 @@ The add-on sets the project type to `wordpress` (for DDEV's WP-CLI) with
 
 | Command | Description |
 |---|---|
-| `ddev install [<version>\|all] [--multisite]` | (Re)installs instances: deletes the directory and the database, downloads WordPress, installs it (multisite: subdirectories), symlinks and activates the plugin |
+| `ddev install [<version>\|all] [--multisite] [-v]` | (Re)installs instances: deletes the directory and the database, builds a Composer project with `roots/wordpress`, the plugin and Twenty Twenty-Four, installs WordPress (multisite: subdirectories) and activates the plugin. `-v` shows all output |
 | `ddev <label> <command>` | Runs a command in one instance, e.g. `ddev 71 wp plugin list` |
 | `ddev all <command>` | Runs a command in every instance, e.g. `ddev all wp cache flush` |
 
 `<version>` is `7.1` or the label `71`. Login: `/wp-admin/` with `admin` / `Password1!`.
 
-The instances run with `WP_DEBUG` (log in `wp-content/debug.log`) and
+## Instance layout
+
+Each instance follows the layout of our Composer-based WordPress projects:
+
+```
+.Build/71/
+├── composer.json        roots/wordpress ~7.1.0, wpackagist, path repository packages/*
+├── packages/<slug>/     symlinks to the project root, without SYMLINK_EXCLUSIONS
+├── vendor/              dependencies of the plugin, resolved by the instance
+├── wp-cli.yml           path: public/wp-source
+└── public/              docroot
+    ├── index.php
+    ├── wp-config.php    loads vendor/autoload.php, credentials via getenv()
+    ├── wp-source/       WordPress core
+    └── wp-content/      plugins/<slug> -> packages/<slug>, themes, uploads
+```
+
+`<version>` installs the newest patch release (`~7.1.0`). The instances run
+with `WP_DEBUG` (log in `public/wp-content/debug.log`) and
 `AUTOMATIC_UPDATER_DISABLED`, so no instance updates itself away from its
-version.
+version. `/wp-admin/` and `/wp-source/wp-admin/` both work.
 
 ## Configuration
 
@@ -61,35 +79,27 @@ services:
   web:
     environment:
       - WP_VERSIONS=6.4 6.9 7.1
-      - WP_PLUGIN_SLUG=my-plugin
 ```
 
 - `WP_VERSIONS`: `<major>.<minor>` versions, default `6.4 7.1`. Hostnames and
   `ddev <label>` commands are generated from it, so run `ddev add-on get
   portrino/ddev-wordpress-multi-version-plugin` and `ddev restart` after a change.
-- `WP_PLUGIN_SLUG`: directory name of the plugin in `wp-content/plugins`.
-  Default: the name of the main file without `.php`.
-
-### Post-install hook
-
-If `.ddev/wordpress-post-install.sh` exists, `ddev install` runs it after each
-instance with `WP_VERSION`, `WP_PATH`, `WP_URL` and `WP_MULTISITE` (`0`/`1`)
-set, for extra plugins, themes, sites or settings:
-
-```bash
-#!/usr/bin/env bash
-set -euo pipefail
-wp=(wp --path="$WP_PATH" --url="$WP_URL")
-"${wp[@]}" plugin install classic-editor --activate --quiet
-if [ "$WP_MULTISITE" = "1" ]; then
-    "${wp[@]}" site create --slug=second --quiet
-fi
-```
+- `SYMLINK_EXCLUSIONS`: root entries of the plugin not linked into the
+  instances, default `vendor node_modules`.
+- `WP_DB_USERNAME`, `WP_DB_PASSWORD`, `WP_DB_HOST`, `WP_SETUP_ADMIN_USERNAME`,
+  `WP_SETUP_ADMIN_PASSWORD`, `WP_SETUP_ADMIN_EMAIL`: database and admin login.
 
 ## Notes
 
 - The primary URL `https://<project>.ddev.site` has no site of its own (403),
   and DDEV's own `ddev wp` points there too. Use `ddev <label> wp …` or `ddev all wp …`.
+- The project root is mounted a second time at `/var/www/plugin`, and
+  `packages/<slug>` links there. WordPress maps a symlinked plugin to its real
+  directory; with `/var/www/html`, which also contains `.Build`, every other
+  plugin's `plugin_basename()` and asset URLs would break. With Mutagen (macOS)
+  this second mount is a plain bind mount.
+- DDEV custom commands don't keep quoting, so `ddev 71 wp eval '…'` breaks on
+  `$`/`;`. Use `ddev exec "cd .Build/71 && wp eval-file file.php"` instead.
 - The webserver configs (`apache/wordpress-versions.*`, `nginx_full/wordpress-versions.conf`)
   do WordPress' `.htaccess` rewrites themselves, including subdirectory multisite.
   To customize one, remove its `#ddev-generated` line.

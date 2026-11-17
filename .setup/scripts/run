@@ -13,7 +13,7 @@ if [ $# -eq 0 ]; then
 fi
 
 path=$(wp_path "$version")
-if [ ! -f "$path/wp-config.php" ]; then
+if [ ! -f "$path/public/wp-config.php" ]; then
     echo "WordPress $version isn't installed, run 'ddev install $version'." >&2
     exit 1
 fi

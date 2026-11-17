@@ -1,6 +1,7 @@
 #ddev-generated
-# Shared by both vhosts in wordpress-versions.conf. Does what WordPress' .htaccess
-# does (including subdirectory multisite), so no instance needs one.
+# Shared by both vhosts in wordpress-versions.conf. <label>.<project> is served from
+# .Build/<label>/public; the rules do what WordPress' .htaccess does (including
+# subdirectory multisite), so no instance needs one.
 
 DocumentRoot /var/www/html/.Build
 <Directory "/var/www/html/.Build">
@@ -17,14 +18,14 @@ LimitRequestFieldSize 16380
 RewriteEngine On
 
 RewriteCond %{HTTP_HOST} ^([0-9]+)\.
-RewriteRule ^ - [E=WP_ROOT:/var/www/html/.Build/%1]
+RewriteRule ^ - [E=WP_ROOT:/var/www/html/.Build/%1/public]
 RewriteCond %{ENV:WP_ROOT} ^$
 RewriteRule ^ - [F]
 
-# Directories without trailing slash, and /<site>/wp-admin. DDEV terminates TLS in
+# Directories without trailing slash, and [/<site>]/wp-admin. DDEV terminates TLS in
 # the router, so mod_dir's own redirect would point to http.
 RewriteCond %{ENV:WP_ROOT}%{REQUEST_URI} -d [OR]
-RewriteCond %{REQUEST_URI} ^/[_0-9a-zA-Z-]+/wp-admin$
+RewriteCond %{REQUEST_URI} ^(/[_0-9a-zA-Z-]+)?/wp-admin$
 RewriteRule ^(.*[^/])$ https://%{HTTP_HOST}$1/ [R=301,L]
 
 # Existing files and directories as they are
@@ -32,8 +33,10 @@ RewriteCond %{ENV:WP_ROOT}%{REQUEST_URI} -f [OR]
 RewriteCond %{ENV:WP_ROOT}%{REQUEST_URI} -d
 RewriteRule ^(.*)$ %{ENV:WP_ROOT}$1 [L]
 
-# Subdirectory multisite: /<site>/wp-* and /<site>/*.php come from the instance root
-RewriteRule ^/[_0-9a-zA-Z-]+(/wp-(content|admin|includes).*)$ %{ENV:WP_ROOT}$1 [L]
-RewriteRule ^/[_0-9a-zA-Z-]+(/.*\.php)$ %{ENV:WP_ROOT}$1 [L]
+# Core lives in public/wp-source, content in public/wp-content. Maps [/<site>]/wp-admin,
+# /wp-includes, /wp-content and /*.php there, for the main site and subdirectory multisite.
+RewriteRule ^(?:/[_0-9a-zA-Z-]+)?/(wp-admin|wp-includes)(/.*)?$ %{ENV:WP_ROOT}/wp-source/$1$2 [L]
+RewriteRule ^(?:/[_0-9a-zA-Z-]+)?/wp-content(/.*)$ %{ENV:WP_ROOT}/wp-content$1 [L]
+RewriteRule ^(?:/[_0-9a-zA-Z-]+)?/([^/]+\.php)$ %{ENV:WP_ROOT}/wp-source/$1 [L]
 
 RewriteRule ^ %{ENV:WP_ROOT}/index.php [L]

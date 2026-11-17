@@ -4,14 +4,17 @@
 # its values win), it survives `ddev add-on get` updates.
 services:
   web:
+    volumes:
+      # The plugin a second time, outside /var/www/html: WordPress maps a symlinked plugin
+      # to its real directory, and /var/www/html would contain every other plugin's path too
+      - ../:/var/www/plugin
     environment:
-      # Directory name of the plugin in wp-content/plugins; empty: the root PHP
-      # file with the "Plugin Name:" header, without .php
-      - WP_PLUGIN_SLUG=
       # One instance per version, <major>.<minor>. After a change run
       # `ddev add-on get` again (hostnames and commands) and `ddev restart`.
       - WP_VERSIONS=6.4 7.1
-      - SYMLINK_EXCLUSIONS=Documentation Documentation-GENERATED-temp var vendor public
+      # Root entries of the plugin that are not linked into the instances; the
+      # instance installs the plugin's dependencies itself
+      - SYMLINK_EXCLUSIONS=vendor node_modules
 
       # WP config
       - WP_DB_USERNAME=root
