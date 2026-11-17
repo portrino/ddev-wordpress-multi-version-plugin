@@ -168,9 +168,10 @@ teardown() {
   mkdir -p "${TESTDIR}/.Build/71/public" "${WORKTREE}/.Build/71/public"
   echo PRIMARY > "${TESTDIR}/.Build/71/public/marker.txt"
   echo WORKTREE > "${WORKTREE}/.Build/71/public/marker.txt"
-  run curl -sfk "https://71.${PROJNAME}.ddev.site/marker.txt"
+  # The router can answer 404 for a second project's hostnames for a moment after its start
+  run curl -sfk --retry 10 --retry-delay 2 --retry-all-errors "https://71.${PROJNAME}.ddev.site/marker.txt"
   assert_output "PRIMARY"
-  run curl -sfk "https://71.${PROJNAME}-wt.ddev.site/marker.txt"
+  run curl -sfk --retry 10 --retry-delay 2 --retry-all-errors "https://71.${PROJNAME}-wt.ddev.site/marker.txt"
   assert_output "WORKTREE"
 }
 
