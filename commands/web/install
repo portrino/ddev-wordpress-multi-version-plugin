@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+
+## #ddev-generated
+## Description: (Re)install the WordPress instances (one per version) with the plugin symlinked in and activated.
+## Usage: install [version|all] [--multisite]
+## Example: "ddev install all" or "ddev install 71 --multisite" or "ddev install 7.1"
+
+set -euo pipefail
+
+. .ddev/.setup/scripts/utils.sh
+
+target="all"
+multisite=0
+for arg in "$@"; do
+    case "$arg" in
+        --multisite) multisite=1 ;;
+        -*) echo "Unknown option '$arg'." >&2; exit 1 ;;
+        *) target="$arg" ;;
+    esac
+done
+
+if [ "$target" = "all" ]; then
+    versions=$(wp_versions)
+else
+    versions=$(wp_resolve "$target")
+fi
+slug=$(wp_plugin_slug)
+
+for version in $versions; do
+    label=$(wp_label "$version")
+    path=$(wp_path "$version")
+    database="wp_${label}"
+    url="https://${label}.${DDEV_SITENAME}.${DDEV_TLD}"
+    wp=(wp --path="$path" --url="$url")
+
+    echo -e "\033[35mInstalling WordPress ${version} at ${url}\033[0m"
+    rm -rf "$path"
+    mysql -u"$WP_DB_USERNAME" -p"$WP_DB_PASSWORD" -h"$WP_DB_HOST" -e "DROP DATABASE IF EXISTS \`$database\`; CREATE DATABASE \`$database\`;"
+    wp core download --version="$version" --path="$path" --quiet
+    "${wp[@]}" config create --dbname="$database" --dbuser="$WP_DB_USERNAME" --dbpass="$WP_DB_PASSWORD" --dbhost="$WP_DB_HOST" --skip-check --quiet \
+        --extra-php <<'PHP'
+define('WP_ENVIRONMENT_TYPE', 'local');
+define('WP_DEBUG', true);
+define('WP_DEBUG_LOG', true);
+define('WP_DEBUG_DISPLAY', false);
+// Each instance must stay on its version, background updates would move it to the latest release
+define('AUTOMATIC_UPDATER_DISABLED', true);
+PHP
+
+    install_args=(--title="${slug} (WordPress ${version})" --admin_user="$WP_SETUP_ADMIN_USERNAME" --admin_password="$WP_SETUP_ADMIN_PASSWORD" --admin_email="$WP_SETUP_ADMIN_EMAIL" --skip-email --quiet)
+    ln -s /var/www/html "$path/wp-content/plugins/$slug"
+    if [ "$multisite" = "1" ]; then
+        "${wp[@]}" core multisite-install "${install_args[@]}"
+        "${wp[@]}" plugin activate "$slug" --network --quiet
+    else
+        "${wp[@]}" core install "${install_args[@]}"
+        "${wp[@]}" plugin activate "$slug" --quiet
+    fi
+
+    # Project-owned hook for extra plugins, themes, sites or settings
+    if [ -f .ddev/wordpress-post-install.sh ]; then
+        WP_VERSION="$version" WP_PATH="$path" WP_URL="$url" WP_MULTISITE="$multisite" \
+            bash .ddev/wordpress-post-install.sh
+    fi
+
+    echo -e "\033[32mWordPress ${version}: ${url}/wp-admin/ (${WP_SETUP_ADMIN_USERNAME} / ${WP_SETUP_ADMIN_PASSWORD})\033[0m"
+done

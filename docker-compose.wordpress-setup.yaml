@@ -1,0 +1,22 @@
+#ddev-generated
+# Defaults of the wordpress-multi-version-plugin add-on. Override them in the
+# project-owned .ddev/docker-compose.zz-project.yaml (sorts after this file, so
+# its values win), it survives `ddev add-on get` updates.
+services:
+  web:
+    environment:
+      # Directory name of the plugin in wp-content/plugins; empty: the root PHP
+      # file with the "Plugin Name:" header, without .php
+      - WP_PLUGIN_SLUG=
+      # One instance per version, <major>.<minor>. After a change run
+      # `ddev add-on get` again (hostnames and commands) and `ddev restart`.
+      - WP_VERSIONS=6.4 7.1
+      - SYMLINK_EXCLUSIONS=Documentation Documentation-GENERATED-temp var vendor public
+
+      # WP config
+      - WP_DB_USERNAME=root
+      - WP_DB_PASSWORD=root
+      - WP_DB_HOST=db
+      - WP_SETUP_ADMIN_EMAIL=admin@example.com
+      - WP_SETUP_ADMIN_USERNAME=admin
+      - WP_SETUP_ADMIN_PASSWORD=Password1!

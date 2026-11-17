@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+## #ddev-generated
+## Description: Run a command in every WordPress instance.
+## Usage: all <command>
+## Example: "ddev all wp plugin list" or "ddev all wp cache flush"
+
+. .ddev/.setup/scripts/utils.sh
+
+versions=$(wp_versions) || exit 1
+failed=()
+for version in $versions; do
+    echo -e "\033[35m[WordPress ${version}] $*\033[0m"
+    bash .ddev/.setup/scripts/run "$version" "$@" || failed+=("$version")
+done
+
+if [ ${#failed[@]} -gt 0 ]; then
+    echo -e "\033[31mCommand failed for WordPress ${failed[*]}.\033[0m" >&2
+    exit 1
+fi

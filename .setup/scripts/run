@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+#ddev-generated
+# Runs a command in the directory of one WordPress instance; used by `ddev <version>` and `ddev all`.
+# Usage: run <version> <command> [args...]
+
+. .ddev/.setup/scripts/utils.sh
+
+version=$(wp_resolve "${1:-}") || exit 1
+shift
+if [ $# -eq 0 ]; then
+    echo "Usage: ddev $(wp_label "$version") <command>, e.g. ddev $(wp_label "$version") wp plugin list" >&2
+    exit 1
+fi
+
+path=$(wp_path "$version")
+if [ ! -f "$path/wp-config.php" ]; then
+    echo "WordPress $version isn't installed, run 'ddev install $version'." >&2
+    exit 1
+fi
+
+cd "$path" && "$@"
