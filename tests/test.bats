@@ -251,6 +251,8 @@ XML
   assert_output "71"
   run ddev 71 wp post list --name=fixture-post --field=post_title
   assert_output "Fixture Post"
+  run ddev exec "mysql -udb -pdb -hdb -N db_71 -e 'SELECT option_value FROM wp_options WHERE option_name=\"fixture_sql\"'"
+  assert_output "yes"
   base="https://71.${PROJNAME}.ddev.site"
   jar="${TESTDIR}/cookies"
   curl -sk -o /dev/null -c "$jar" -b "$jar" "$base/wp-login.php"

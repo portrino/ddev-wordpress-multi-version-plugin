@@ -38,7 +38,7 @@ importer=()
 for version in $versions; do
     label=$(wp_label "$version")
     path=$(wp_path "$version")
-    database="wp_${label}"
+    database="db_${label}"
     url="https://${label}.${DDEV_SITENAME}.${DDEV_TLD}"
     composer=(composer --working-dir="$path" --no-interaction)
     multisite_flag=()
@@ -70,7 +70,7 @@ for version in $versions; do
             done
         done
         mysql -u"$WP_DB_USERNAME" -p"$WP_DB_PASSWORD" -h"$WP_DB_HOST" \
-            -e "DROP DATABASE IF EXISTS \`$database\`; CREATE DATABASE \`$database\`;"
+            -e "DROP DATABASE IF EXISTS \`$database\`; CREATE DATABASE \`$database\`; GRANT ALL ON \`$database\`.* TO 'db'@'%';"
     _done
 
     _progress " ├─ Install Composer packages"

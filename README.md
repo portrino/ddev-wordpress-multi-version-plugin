@@ -10,8 +10,8 @@ root through a path repository and activated.
 
 | WordPress | Hostname | Directory | Database |
 |---|---|---|---|
-| 6.4 | `https://64.<project>.ddev.site` | `.Build/64` | `wp_64` |
-| 7.1 | `https://71.<project>.ddev.site` | `.Build/71` | `wp_71` |
+| 6.4 | `https://64.<project>.ddev.site` | `.Build/64` | `db_64` |
+| 7.1 | `https://71.<project>.ddev.site` | `.Build/71` | `db_71` |
 
 Inspired by [ddev-typo3-multi-version-extension](https://github.com/konradmichalik/ddev-typo3-multi-version-extension).
 
