@@ -35,10 +35,13 @@ project_files:
   - .setup/scripts/run
   - .setup/scripts/utils.sh
   - .setup/scripts/write-git-info.sh
+  - .setup/scripts/wp-versions-host.sh
   - .setup/docker-compose.zz-project.yaml.example
   - .setup/project.sh.example
   - .setup/templates/index.php
   - commands/host/open
+  - commands/host/worktree-init
+  - commands/host/worktree-remove
   - apache/wordpress-versions.conf
   - apache/wordpress-versions.rules
   - nginx_full/wordpress-versions.conf
@@ -53,20 +56,7 @@ post_install_actions:
     # DDEV needs the hostnames and the commands before it starts, so they're generated
     # here from WP_VERSIONS. The project-owned docker-compose.zz-project.yaml wins over
     # the add-on's default. Changing WP_VERSIONS means running `ddev add-on get` again.
-    wp_versions=""
-    override="${DDEV_APPROOT}/.ddev/docker-compose.zz-project.yaml"
-    if [ -f "$override" ]; then
-      wp_versions=$(grep -oE 'WP_VERSIONS=[0-9. ]+' "$override" | head -n1 | cut -d= -f2)
-    fi
-    if [ -z "$wp_versions" ]; then
-      wp_versions=$(grep -oE 'WP_VERSIONS=[0-9. ]+' "${DDEV_APPROOT}/.ddev/docker-compose.wordpress-setup.yaml" | head -n1 | cut -d= -f2)
-    fi
-    for version in $wp_versions; do
-      if ! [[ "$version" =~ ^[0-9]+\.[0-9]+$ ]]; then
-        echo "Invalid WordPress version '$version' in WP_VERSIONS, use <major>.<minor>, e.g. 7.1."
-        exit 1
-      fi
-    done
+    wp_versions=$(bash "${DDEV_APPROOT}/.ddev/.setup/scripts/wp-versions-host.sh" "${DDEV_APPROOT}") || exit 1
 
     # Commands generated for a previous WP_VERSIONS
     for file in "${DDEV_APPROOT}"/.ddev/commands/web/*; do
@@ -111,12 +101,15 @@ post_install_actions:
     echo "WordPress wp_versions: ${wp_versions} (hostnames and 'ddev <version>' commands)"
 
   - |
-    #ddev-description:Add .Build/ to .gitignore
+    #ddev-description:Add .Build/ and the worktree hostnames to .gitignore
     gitignore="${DDEV_APPROOT}/.gitignore"
-    if ! grep -qxF ".Build/" "$gitignore" 2>/dev/null; then
-      echo ".Build/" >> "$gitignore"
-      echo "Added '.Build/' to .gitignore."
-    fi
+    # The worktree file holds one checkout's hostnames (ddev worktree-init), DDEV's own .gitignore misses it
+    for entry in ".Build/" ".ddev/config.zz-worktree.local.yaml"; do
+      if ! grep -qxF "$entry" "$gitignore" 2>/dev/null; then
+        echo "$entry" >> "$gitignore"
+        echo "Added '$entry' to .gitignore."
+      fi
+    done
 
   - |
     #ddev-description:Outro

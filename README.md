@@ -34,7 +34,7 @@ ddev install all
 
 The add-on sets the project type to `wordpress` (for DDEV's WP-CLI) with
 `disable_settings_management: true` and the docroot `.Build`, and adds
-`.Build/` to `.gitignore`. Commit `.ddev/`.
+`.Build/` and `.ddev/config.zz-worktree.local.yaml` to `.gitignore`. Commit `.ddev/`.
 
 ## Commands
 
@@ -43,6 +43,7 @@ The add-on sets the project type to `wordpress` (for DDEV's WP-CLI) with
 | `ddev install [<version>\|all] [--multisite] [-v]` | (Re)installs instances: deletes the directory and the database, builds a Composer project with `roots/wordpress`, the plugin, the theme and the extra packages from `project.sh`, installs WordPress (multisite: subdirectories), activates the theme and all plugins. `-v` shows all output |
 | `ddev <label> <command>` | Runs a command in one instance, e.g. `ddev 71 wp plugin list` |
 | `ddev open [<version>] [<path>]` | Opens the intro page, or an instance, e.g. `ddev open 71 /wp-admin/` (uses `ddev launch`) |
+| `ddev worktree-init` / `ddev worktree-remove` | Set up / tear down a git worktree checkout, see [Git worktrees](#git-worktrees) |
 | `ddev all <command>` | Runs a command in every instance, e.g. `ddev all wp cache flush` |
 
 `<version>` is `7.1` or the label `71`. The primary URL `https://<project>.ddev.site`
@@ -172,6 +173,34 @@ homeadditions, it is copied into every web container:
 mkdir -p ~/.ddev/homeadditions/.composer
 ln -s ~/.composer/auth.json ~/.ddev/homeadditions/.composer/auth.json
 ```
+
+## Git worktrees
+
+Several checkouts of the plugin can run side by side, e.g. one per branch.
+
+One-time setup: let DDEV take the project name from the directory instead of a
+fixed `name:` in `.ddev/config.yaml`. Remove that line and commit it, or set it
+globally with `ddev config global --omit-project-name-by-default=true`.
+
+Per worktree, created as a sibling of the primary checkout, with a directory
+name that is a valid DNS label:
+
+```bash
+git worktree add ../my-plugin-feature feature/x
+cd ../my-plugin-feature
+ddev worktree-init   # hostnames 71.my-plugin-feature.ddev.site, …
+ddev restart
+ddev install all
+```
+
+`ddev worktree-init` writes `.ddev/config.zz-worktree.local.yaml`, which the
+add-on keeps out of git. `.Build/` isn't shared, so every worktree installs its
+own instances. A bare `404 page not found` right after the restart comes from
+the DDEV router; restart once more.
+
+To remove a worktree, run `ddev worktree-remove` inside it. It deletes the DDEV
+project and prints the `git worktree remove` / `git branch -D` commands for the
+primary checkout.
 
 ## Notes
 

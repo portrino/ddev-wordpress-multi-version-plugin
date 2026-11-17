@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+## #ddev-generated
+## Description: Give this git worktree checkout its own hostnames, so it can run next to the primary checkout.
+## Usage: worktree-init
+## Example: "ddev worktree-init"
+
+set -eo pipefail
+
+# The committed config.wordpress-setup.yaml carries the primary checkout's project name
+versions=$(bash .ddev/.setup/scripts/wp-versions-host.sh "$PWD")
+override_file=".ddev/config.zz-worktree.local.yaml"
+{
+    echo "#ddev-generated"
+    echo "# Hostnames of this checkout (ddev worktree-init), not committed."
+    echo "override_config: true"
+    echo "additional_hostnames:"
+    for version in $versions; do
+        echo "  - ${version//./}.${DDEV_PROJECT}"
+    done
+} > "$override_file"
+
+echo "Wrote ${override_file} for project '${DDEV_PROJECT}' (WordPress ${versions})."
+echo "Run 'ddev restart' and then 'ddev install all'."
+echo "A bare '404 page not found' right after the restart comes from the DDEV router; run 'ddev restart' once more."

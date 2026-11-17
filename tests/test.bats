@@ -97,6 +97,10 @@ generated_files_checks() {
 teardown() {
   set -eu -o pipefail
   ddev delete -Oy "${PROJNAME}" >/dev/null 2>&1
+  if [ -d "${WORKTREE:-}" ]; then
+    (cd "${WORKTREE}" && ddev delete -Oy >/dev/null 2>&1) || true
+    rm -rf "${WORKTREE}"
+  fi
   # Persist TESTDIR if running inside GitHub Actions. Useful for uploading test result artifacts
   # See example at https://github.com/ddev/github-action-add-on-test#preserving-artifacts
   if [ -n "${GITHUB_ENV:-}" ]; then
@@ -141,6 +145,33 @@ teardown() {
   assert_file_not_exist .ddev/config.wordpress-setup.yaml
   assert_file_not_exist .ddev/commands/web/71
   assert_file_not_exist .ddev/apache/wordpress-versions.conf
+}
+
+@test "git worktree gets its own hostnames next to the primary checkout" {
+  set -eu -o pipefail
+  start_project apache-fpm
+  git init -q && git add -A && git -c user.name=t -c user.email=t@example.com commit -qm init
+  export WORKTREE="${HOME}/tmp/${PROJNAME}-wt"
+  git worktree add -q "${WORKTREE}" -b wt
+  cd "${WORKTREE}"
+  # One-time setup from the docs: the project name comes from the directory
+  sed -i '/^name:/d' .ddev/config.yaml
+  run ddev worktree-init
+  assert_success
+  run grep -F "71.${PROJNAME}-wt" .ddev/config.zz-worktree.local.yaml
+  assert_success
+  run git status --porcelain
+  assert_output " M .ddev/config.yaml"
+  run ddev start -y
+  assert_success
+
+  mkdir -p "${TESTDIR}/.Build/71/public" "${WORKTREE}/.Build/71/public"
+  echo PRIMARY > "${TESTDIR}/.Build/71/public/marker.txt"
+  echo WORKTREE > "${WORKTREE}/.Build/71/public/marker.txt"
+  run curl -sfk "https://71.${PROJNAME}.ddev.site/marker.txt"
+  assert_output "PRIMARY"
+  run curl -sfk "https://71.${PROJNAME}-wt.ddev.site/marker.txt"
+  assert_output "WORKTREE"
 }
 
 # bats test_tags=install

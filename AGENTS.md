@@ -23,6 +23,11 @@ conventions aligned with it where WordPress allows.
 - `.setup/project.sh.example`: template for the project-owned `.ddev/.setup/project.sh`
   (`THEME_PACKAGES`, `THEME`, `ADDITIONAL_PACKAGES`, `COMPOSER_CONFIG`,
   `FIXTURES_DIR`, `FIXTURE_PACKAGE_DIRS`); defaults and `run_hook` are in `utils.sh`.
+- `commands/host/worktree-init`, `worktree-remove`: per-worktree hostnames in the
+  gitignored `config.zz-worktree.local.yaml`. Only the generated
+  `config.wordpress-setup.yaml` bakes in the project name; everything else uses
+  `DDEV_SITENAME` at runtime, keep it that way. `.setup/scripts/wp-versions-host.sh`
+  reads `WP_VERSIONS` on the host for `install.yaml` and `worktree-init`.
 - `.setup/templates/index.php`: intro page, copied to `.Build/` by the generated
   post-start hook together with `write-git-info.sh`; `commands/host/open`.
 - `commands/web/install`, `commands/web/all`, `.setup/scripts/`
