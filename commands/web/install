@@ -28,6 +28,13 @@ fi
 slug=$(wp_plugin_slug)
 package=$(wp_package_name)
 
+shopt -s nullglob
+fixtures="/var/www/plugin/${FIXTURES_DIR}"
+fixture_files=("$fixtures"/*.sql "$fixtures"/*.xml "$fixtures"/*.sh)
+xml_fixtures=("$fixtures"/*.xml)
+importer=()
+[ ${#xml_fixtures[@]} -gt 0 ] && importer=(wpackagist-plugin/wordpress-importer)
+
 for version in $versions; do
     label=$(wp_label "$version")
     path=$(wp_path "$version")
@@ -57,7 +64,9 @@ for version in $versions; do
         # Local packages (e.g. a child theme), required by name in THEME_PACKAGES or ADDITIONAL_PACKAGES
         for dir in "${FIXTURE_PACKAGE_DIRS[@]}"; do
             for item in "/var/www/plugin/$dir"/*/; do
-                [ -f "$item/composer.json" ] && ln -s "${item%/}" "$path/packages/"
+                if [ -f "$item/composer.json" ]; then
+                    ln -s "${item%/}" "$path/packages/"
+                fi
             done
         done
         mysql -u"$WP_DB_USERNAME" -p"$WP_DB_PASSWORD" -h"$WP_DB_HOST" \
@@ -85,7 +94,7 @@ for version in $versions; do
         }'
         "${composer[@]}" require --no-progress \
             "roots/wordpress:~${version}.0" composer/installers "${package}:*@dev" \
-            "${THEME_PACKAGES[@]}" "${ADDITIONAL_PACKAGES[@]}"
+            "${THEME_PACKAGES[@]}" "${ADDITIONAL_PACKAGES[@]}" "${importer[@]}"
     _done
 
     cd "$path"
@@ -143,6 +152,26 @@ PHP
     _done
 
     run_hook post-wp-setup
+
+    if [ ${#fixture_files[@]} -gt 0 ]; then
+        _progress " ├─ Import fixtures"
+            for file in "$fixtures"/*.sql; do
+                message yellow "Importing $(basename "$file")"
+                wp db import "$file" --quiet
+            done
+            for file in "$fixtures"/*.xml; do
+                message yellow "Importing $(basename "$file")"
+                wp import "$file" --authors=create --quiet
+            done
+            # Best effort: a failing script is reported, not fatal
+            for file in "$fixtures"/*.sh; do
+                message yellow "Running $(basename "$file")"
+                WP_VERSION="$version" WP_LABEL="$label" WP_URL="$url" WP_MULTISITE="$multisite" \
+                    bash "$file" || message red "Fixture script $(basename "$file") failed (continuing)"
+            done
+        _done
+    fi
+
     run_hook post-install
 
     printf " └─ \e[33mWordPress %s ready:\e[0m %s/wp-admin/ (%s / %s)\n" "$version" "$url" "$WP_SETUP_ADMIN_USERNAME" "$WP_SETUP_ADMIN_PASSWORD"

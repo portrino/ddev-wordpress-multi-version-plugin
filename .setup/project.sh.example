@@ -30,6 +30,10 @@ COMPOSER_CONFIG=(
     'repositories.acme composer https://composer.example.com/'
 )
 
+# Fixtures imported on every install (relative to the project root): *.sql via
+# `wp db import`, *.xml (WXR) via `wp import`, *.sh run inside the instance.
+FIXTURES_DIR='Tests/Acceptance/Fixtures'
+
 # Directories (relative to the project root) whose subdirectories with a
 # composer.json are offered to the instances through the path repository.
 FIXTURE_PACKAGE_DIRS=(

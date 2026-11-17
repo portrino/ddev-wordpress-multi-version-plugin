@@ -161,7 +161,7 @@ teardown() {
 }
 
 # bats test_tags=install
-@test "single site: project.sh, child theme, hooks and admin login" {
+@test "single site: project.sh, child theme, hooks, fixtures and admin login" {
   set -eu -o pipefail
   child=Tests/Acceptance/Fixtures/packages/child-theme
   mkdir -p "$child" .ddev/.setup/hooks
@@ -169,6 +169,27 @@ teardown() {
   printf '/*\nTheme Name: Child Theme\nTemplate: twentytwentyfour\n*/\n' > "$child/style.css"
   printf "THEME_PACKAGES=('test/child-theme:*@dev')\nTHEME='child-theme'\nADDITIONAL_PACKAGES=('wpackagist-plugin/hello-dolly')\n" > .ddev/.setup/project.sh
   printf 'wp option update blogdescription "hooked $label" --quiet\n' > .ddev/.setup/hooks/post-install.sh
+  fixtures=Tests/Acceptance/Fixtures
+  printf "INSERT INTO wp_options (option_name, option_value) VALUES ('fixture_sql', 'yes');\n" > "$fixtures/options.sql"
+  printf 'wp option add fixture_sh "$WP_LABEL" --quiet\n' > "$fixtures/script.sh"
+  cat > "$fixtures/content.xml" <<'XML'
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0" xmlns:excerpt="http://wordpress.org/export/1.2/excerpt/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:wfw="http://wellformedweb.org/CommentAPI/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:wp="http://wordpress.org/export/1.2/">
+<channel>
+  <wp:wxr_version>1.2</wp:wxr_version>
+  <item>
+    <title>Fixture Post</title>
+    <dc:creator><![CDATA[admin]]></dc:creator>
+    <content:encoded><![CDATA[Imported from a fixture]]></content:encoded>
+    <excerpt:encoded><![CDATA[]]></excerpt:encoded>
+    <wp:post_id>4711</wp:post_id>
+    <wp:post_name><![CDATA[fixture-post]]></wp:post_name>
+    <wp:status><![CDATA[publish]]></wp:status>
+    <wp:post_type><![CDATA[post]]></wp:post_type>
+  </item>
+</channel>
+</rss>
+XML
   start_project nginx-fpm
   run ddev install 7.1
   assert_success
@@ -180,6 +201,12 @@ teardown() {
   assert_success
   run ddev 71 wp option get blogdescription
   assert_output "hooked 71"
+  run ddev 71 wp option get fixture_sql
+  assert_output "yes"
+  run ddev 71 wp option get fixture_sh
+  assert_output "71"
+  run ddev 71 wp post list --name=fixture-post --field=post_title
+  assert_output "Fixture Post"
   base="https://71.${PROJNAME}.ddev.site"
   jar="${TESTDIR}/cookies"
   curl -sk -o /dev/null -c "$jar" -b "$jar" "$base/wp-login.php"

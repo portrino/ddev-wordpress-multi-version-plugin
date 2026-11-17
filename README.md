@@ -100,6 +100,7 @@ the project and survives `ddev add-on get`.
 | `THEME` | `twentytwentyfour` | Theme that gets activated |
 | `ADDITIONAL_PACKAGES` | – | Extra packages (e.g. from wpackagist or a private repository), activated together with the plugin |
 | `COMPOSER_CONFIG` | – | Extra `composer config` calls, e.g. a private repository |
+| `FIXTURES_DIR` | `Tests/Acceptance/Fixtures` | Fixtures imported on every install, see below |
 | `FIXTURE_PACKAGE_DIRS` | `Tests/Acceptance/Fixtures/packages` | Subdirectories with a `composer.json` become available through the path repository |
 
 A child theme lives in the plugin repository, e.g.
@@ -119,6 +120,20 @@ A child theme lives in the plugin repository, e.g.
 THEME_PACKAGES=('test/my-child-theme:*@dev')
 THEME='my-child-theme'
 ```
+
+### Fixtures
+
+After `post-wp-setup`, every install imports the files in `FIXTURES_DIR` into the
+instance (multisite: the main site):
+
+| File | Import |
+|---|---|
+| `*.sql` | `wp db import`, tables use the prefix `wp_` |
+| `*.xml` | WordPress export (WXR) via `wp import --authors=create`; `wordpress-importer` is added only then |
+| `*.sh` | Run inside the instance with `WP_VERSION`, `WP_LABEL`, `WP_URL`, `WP_MULTISITE`; a failing script is reported, not fatal |
+
+For demo content, put WordPress' [theme unit test data](https://github.com/WordPress/theme-test-data)
+(`themeunittestdata.wordpress.xml`) there.
 
 ### Hooks
 

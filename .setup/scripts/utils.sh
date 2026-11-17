@@ -186,6 +186,7 @@ THEME_PACKAGES=('wpackagist-theme/twentytwentyfour')
 THEME='twentytwentyfour'
 ADDITIONAL_PACKAGES=()
 COMPOSER_CONFIG=()
+FIXTURES_DIR='Tests/Acceptance/Fixtures'
 FIXTURE_PACKAGE_DIRS=('Tests/Acceptance/Fixtures/packages')
 if [ -f /var/www/html/.ddev/.setup/project.sh ]; then
     . /var/www/html/.ddev/.setup/project.sh
