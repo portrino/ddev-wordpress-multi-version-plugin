@@ -19,6 +19,9 @@ RewriteEngine On
 
 RewriteCond %{HTTP_HOST} ^([0-9]+)\.
 RewriteRule ^ - [E=WP_ROOT:/var/www/html/.Build/%1/public]
+# Primary hostname: only the intro page, nothing else from .Build (e.g. .git-info)
+RewriteCond %{ENV:WP_ROOT} ^$
+RewriteRule ^/(index\.php)?$ /var/www/html/.Build/index.php [L]
 RewriteCond %{ENV:WP_ROOT} ^$
 RewriteRule ^ - [F]
 
