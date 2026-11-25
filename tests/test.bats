@@ -178,6 +178,9 @@ teardown() {
 # bats test_tags=install
 @test "install a WordPress instance and activate the plugin" {
   set -eu -o pipefail
+  mkdir Tests && touch Tests/SomeTest.php
+  printf '/Tests export-ignore\n' > .gitattributes
+  git init -q
   start_project apache-fpm
   run ddev install 6.4 --multisite
   assert_success
@@ -187,6 +190,8 @@ teardown() {
   assert_success
   # The plugin comes from the path repository, its symlinks point back to the project root
   assert_link_exists .Build/64/packages/test-plugin/test-plugin.php
+  # Root entries marked export-ignore stay out, like in the release archive
+  assert_not_exists .Build/64/packages/test-plugin/Tests
   run curl -sfk "https://64.${PROJNAME}.ddev.site/wp-login.php"
   assert_success
   run curl -sfk -o /dev/null -w '%{http_code}' "https://64.${PROJNAME}.ddev.site/"

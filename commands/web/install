@@ -59,6 +59,11 @@ for version in $versions; do
             for exclusion in "${exclusions[@]}"; do
                 [ "$(basename "$item")" = "$exclusion" ] && continue 2
             done
+            # Leave out what the release archive leaves out (export-ignore in .gitattributes);
+            # without git or a repository everything is linked
+            # shortcut: only root entries, a rule for a nested path (/Classes/Debug) doesn't apply
+            git -C /var/www/plugin check-attr export-ignore -- "$(basename "$item")" 2>/dev/null \
+                | grep -q ': set$' && continue
             ln -s "$item" "$path/packages/$slug/"
         done
         # Local packages (e.g. a child theme), required by name in THEME_PACKAGES or ADDITIONAL_PACKAGES

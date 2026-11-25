@@ -16,7 +16,8 @@ Per version it:
 
 1. runs the `pre-install` hook,
 2. deletes `.Build/<label>` and drops and recreates the database `db_<label>` (with access for DDEV's `db` user, like `ddev import-db`),
-3. links the plugin into `packages/<slug>` (without `SYMLINK_EXCLUSIONS`) and
+3. links the plugin into `packages/<slug>` (without `SYMLINK_EXCLUSIONS` and the
+   root entries marked `export-ignore` in its `.gitattributes`, like the release archive) and
    the local packages from `FIXTURE_PACKAGE_DIRS`,
 4. creates a Composer project and requires `roots/wordpress:~<version>.0`, the
    plugin, `THEME_PACKAGES` and `ADDITIONAL_PACKAGES`, then runs the `post-composer` hook,
@@ -33,7 +34,7 @@ Each instance follows the layout of a Composer-based WordPress project:
 ```
 .Build/71/
 ├── composer.json        roots/wordpress ~7.1.0, wpackagist, path repository packages/*
-├── packages/<slug>/     symlinks to the project root, without SYMLINK_EXCLUSIONS
+├── packages/<slug>/     symlinks to the project root, without SYMLINK_EXCLUSIONS and export-ignore
 ├── vendor/              dependencies of the plugin, resolved by the instance
 ├── wp-cli.yml           path: public/wp-source
 └── public/              docroot

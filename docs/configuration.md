@@ -26,7 +26,7 @@ services:
 | Variable | Default | Effect |
 |---|---|---|
 | `WP_VERSIONS` | `6.4 7.1` | `<major>.<minor>` versions, one instance each |
-| `SYMLINK_EXCLUSIONS` | `vendor node_modules` | Root entries of the plugin not linked into the instances |
+| `SYMLINK_EXCLUSIONS` | `vendor node_modules` | Root entries of the plugin not linked into the instances, in addition to those marked `export-ignore` in `.gitattributes` |
 | `WP_DB_USERNAME`, `WP_DB_PASSWORD`, `WP_DB_HOST` | `root`, `root`, `db` | Database access |
 | `WP_SETUP_ADMIN_USERNAME`, `WP_SETUP_ADMIN_PASSWORD`, `WP_SETUP_ADMIN_EMAIL` | `admin`, `Password1!`, `admin@example.com` | Admin login |
 
